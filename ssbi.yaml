@@ -1,0 +1,13 @@
+path: datasets        # <-- as before
+train: images/train
+val:   images/val
+
+names:
+  0: signature
+  1: amount
+  2: amount_words
+  3: date
+  4: payee
+  5: signature_f
+  6: signature_g
+# nc will be inferred = 7

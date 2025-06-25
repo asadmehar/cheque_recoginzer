@@ -1,0 +1,41 @@
+
+---
+
+## 🚫 3. `.gitignore` for ML Projects
+
+Add this to your `.gitignore`:
+
+```gitignore
+# Ignore Python cache & virtual env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+*.env
+
+# Ignore model weights
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.h5
+runs/
+
+# Ignore datasets
+data/
+datasets/
+*.zip
+*.tar.gz
+
+# Ignore notebooks checkpoints
+.ipynb_checkpoints/
+
+# Ignore logs and debug
+*.log
+logs/
+
+# Ignore output
+outputs/
+checkpoints/

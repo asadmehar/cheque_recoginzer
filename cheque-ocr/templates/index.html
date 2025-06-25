@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Cheque-OCR demo</title>
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    body { max-width: 720px; margin: 2rem auto; }
+    pre  { background:#f5f5f5; padding:1rem; overflow-x:auto; }
+  </style>
+</head>
+<body>
+<h1>Cheque-OCR</h1>
+
+<input type="file" id="file" accept="image/*">
+<button id="run">Run OCR</button>
+
+<h3>Result</h3>
+<pre id="out">{ }</pre>
+
+<script src="/static/main.js"></script>
+</body>
+</html>

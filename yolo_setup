@@ -1,0 +1,233 @@
+
+conda create -n yolo11 python=3.10 -y
+conda activate yolo11
+pip install --upgrade pip
+pip install ultralytics opencv-python tqdm
+
+
+
+python coco2yolo.py --json /home/asad/ITU/MLOps/ssbi-dataset/ssbi-dataset/data/ssbi/annotations/instances_train.json \
+                     --img-dir datasets/images/train \
+                     --out-dir datasets/labels/train
+
+python coco2yolo.py --json /home/asad/ITU/MLOps/ssbi-dataset/ssbi-dataset/data/ssbi/annotations/instances_val.json \
+                     --img-dir datasets/images/val \
+                     --out-dir datasets/labels/val
+
+
+-- root = Path("/home/asad/ITU/MLOps/ssbi-dataset/ssbi-dataset/data/ssbi")
+-- ann_path = root / "annotations/instances_train.json"
+
+
+
+yolo detect train \
+  model=yolov8s.pt          \   # start from the small pretrained model; swap for m / l if VRAM allows
+  data=ssbi.yaml            \
+  epochs=150                \
+  imgsz=1280                \   # cheques are wide—bump resolution for tiny handwriting
+  batch=8                   \
+  workers=8                 \
+  device=0                  \
+  hsv_h=0.015 hsv_s=0.7 hsv_v=0.4 \   # basic colour jitter
+  degrees=0.0 translate=0.05 scale=0.2 shear=0.0 \
+  mosaic=0.0                # <- set 0; mosaic hurts very small, dense fields
+
+
+
+  yolo detect train \
+  model=yolov8s.pt \
+  data=ssbi.yaml \
+  epochs=50 \
+  imgsz=1280 \
+  batch=16 \
+  workers=8 \
+  device=0 \
+  hsv_h=0.015 hsv_s=0.7 hsv_v=0.4 \
+  degrees=0 translate=0.05 scale=0.2 shear=0 \
+  mosaic=0
+
+
+### no pedding
+ yolo detect train \
+  model=yolo11s.pt \
+  data=ssbi.yaml \
+  epochs=50 \
+  imgsz=960 \
+  batch=32 \
+  workers=8 \
+  device=0 \
+  rect=True \
+  hsv_h=0.015 hsv_s=0.7 hsv_v=0.4 \
+  degrees=0 translate=0.05 scale=0.2 shear=0 \
+  mosaic=0
+
+yolo detect train \
+  model=yolo11s.pt \
+  data=ssbi.yaml \
+  epochs=150 \
+  imgsz=960 \
+  batch=64 \
+  workers=8 \
+  device=0 \
+  freeze=10 \
+  rect=True \
+  hsv_h=0.015 hsv_s=0.7 hsv_v=0.4 \
+  degrees=0 translate=0.05 scale=0.2 shear=0 \
+  mosaic=0
+
+
+
+  
+
+pip install --upgrade ultralytics
+yolo detect train \
+  model=yolo11n.pt \
+  data=ssbi.yaml \
+  imgsz=1280 batch=32 epochs=5 \
+  lr0=0.001 freeze=10 \
+  mosaic=0 translate=0.05 scale=0.2 hsv_h=0.015 hsv_s=0.7 hsv_v=0.4
+
+
+yolo detect train \
+  model=yolo11n.pt \          # 2.6 M-param YOLO-11 “nano” backbone
+  data=ssbi.yaml \            # your cheque dataset YAML
+  epochs=150 \                # **total** training epochs
+  patience=30 \               # early-stop if val mAP doesn’t improve for 30 epochs
+  imgsz=1280 \                # keep the high resolution for tiny fields
+  batch=16 \                  # fits comfortably in 16 GB at 1280-px (see note ①)
+  lr0=0.001 \                 # initial LR (default 0.01 is too high for nano nets)
+  freeze=10 \                 # keep first 10 layers frozen for the first 10 epochs
+  mosaic=0 \                  # mosaic off → better for document layouts
+  translate=0.05 scale=0.2 \  # gentle spatial augments
+  hsv_h=0.015 hsv_s=0.7 hsv_v=0.4
+
+  yolo detect train \
+  model=yolo11n.pt \
+  data=ssbi.yaml \
+  epochs=150 \
+  patience=30 \
+  imgsz=1280 \
+  batch=16 \
+  lr0=0.001 \
+  mosaic=0 \
+  translate=0.05 \
+  scale=0.2 \
+  hsv_h=0.015 \
+  hsv_s=0.7 \
+  hsv_v=0.4
+  
+  freeze=10 \
+
+
+  
+rm datasets/labels/train.cache datasets/labels/val.cache  # adjust path if needed
+
+
+yolo detect val model=runs/detect/train6/weights/best.pt data=ssbi.yaml
+
+yolo detect predict \
+     model=runs/detect/train6/weights/best.pt \
+     source=datasets/images/val/check_001_003_G2_4.jpg \
+     save=True
+
+
+
+
+/home/asad/ITU/Projects/Models_And_Output/best.pt
+
+yolo detect predict \
+     model=/home/asad/ITU/Projects/Models_And_Output/best.pt \
+     source=/home/asad/ITU/Projects/Models_And_Output/cheque1.jpg \
+     save=True
+
+
+
+python cheque_reader_yolo.py \
+    --weights /home/asad/ITU/Projects/Models_And_Output/best_yolo11n.pt \
+    --images  /home/asad/ITU/Projects/Models_And_Output/cheque1.jpg \
+    --out     /home/asad/ITU/Projects/Models_And_Output/cheque_results.csv \
+    --debug   
+
+best_yolo11n.pt
+
+
+
+python cheque_reader_simple.py \
+    --weights /home/asad/ITU/Projects/Models_And_Output/best_yolo11n.pt \
+    --images  /home/asad/ITU/Projects/Models_And_Output/cheque1.jpg \
+    --out     /home/asad/ITU/Projects/Models_And_Output/cheque_results.csv \
+    --debug   
+
+
+/home/asad/ITU/Projects/Models_And_Output
+
+/home/asad/ITU/Projects/cheque_recoginzer/yolo_setup
+
+python yolo_annotate_folder.py \
+        --weights /home/asad/ITU/Projects/Models_And_Output/best_yolo11s.pt \
+        --images  /home/asad/ITU/Projects/cheque_recoginzer/datasets/images/val              \
+        --out     /home/asad/ITU/Projects/Models_And_Output/annotated_n             \
+        --conf    0.25                           \
+
+python yolo_annotate_folder.py \
+        --weights /home/asad/ITU/Projects/Models_And_Output/best_yolo11n.pt \
+        --images  /home/asad/ITU/Projects/cheque_recoginzer/datasets/images/val              \
+        --out     /home/asad/ITU/Projects/Models_And_Output/annotated_s             \
+        --conf    0.25   
+
+==================================================================
+1. 
+
+Validating runs/detect/train/weights/best.pt...
+Ultralytics 8.3.156 🚀 Python-3.10.18 torch-2.7.1+cu126 CUDA:0 (NVIDIA GeForce RTX 4060 Ti, 15950MiB)
+YOLO11n summary (fused): 100 layers, 2,583,517 parameters, 0 gradients, 6.3 GFLOPs
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100%|██████████| 41/41 [00:05<00:00,  7.52it/s]
+                   all       1308       5779      0.996      0.997      0.995      0.994
+                amount       1308       1308          1          1      0.995      0.995
+          amount_words       1308       1308          1          1      0.995      0.995
+                  date       1168       1168          1          1      0.995      0.995
+                 payee        687        687          1          1      0.995      0.995
+           signature_f        300        300      0.987      0.985      0.994      0.991
+           signature_g       1008       1008      0.992      0.997      0.995      0.993
+Speed: 0.5ms preprocess, 2.2ms inference, 0.0ms loss, 0.5ms postprocess per image
+Results saved to runs/detect/train
+💡 Learn more at https://docs.ultralytics.com/modes/train
+==================================================================
+Validating runs/detect/train3/weights/best.pt...
+Ultralytics 8.3.156 🚀 Python-3.10.18 torch-2.7.1+cu126 CUDA:0 (NVIDIA GeForce RTX 4060 Ti, 15950MiB)
+YOLO11s summary (fused): 100 layers, 9,415,509 parameters, 0 gradients, 21.3 GFLOPs
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100%|██████████| 11/11 [00:06<00:00,  1.80it/s]
+                   all       1308       5779      0.992      0.995      0.995      0.992
+                amount       1308       1308          1          1      0.995      0.995
+          amount_words       1308       1308          1          1      0.995      0.995
+                  date       1168       1168          1          1      0.995      0.995
+                 payee        687        687      0.999          1      0.995      0.995
+           signature_f        300        300      0.971      0.973      0.993      0.981
+           signature_g       1008       1008      0.984      0.995      0.995      0.991
+Speed: 0.3ms preprocess, 2.9ms inference, 0.0ms loss, 0.5ms postprocess per image
+Results saved to runs/detect/train3
+💡 Learn more at https://docs.ultralytics.com/modes/train
+VS Code: view Ultralytics VS Code Extension ⚡ at https://docs.ultralytics.com/integrations/vscode
+
+==============================================================================
+yolo11s trained wihtout freezing of layers.
+
+125 epochs completed in 2.611 hours.
+Optimizer stripped from runs/detect/train5/weights/last.pt, 5.5MB
+Optimizer stripped from runs/detect/train5/weights/best.pt, 5.5MB
+
+Validating runs/detect/train5/weights/best.pt...
+Ultralytics 8.3.156 🚀 Python-3.10.18 torch-2.7.1+cu126 CUDA:0 (NVIDIA GeForce RTX 4060 Ti, 15950MiB)
+YOLO11n summary (fused): 100 layers, 2,583,517 parameters, 0 gradients, 6.3 GFLOPs
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100%|██████████| 41/41 [00:05<00:00,  7.75it/s]
+                   all       1308       5779      0.999          1      0.995      0.994
+                amount       1308       1308      0.999          1      0.995      0.995
+          amount_words       1308       1308          1          1      0.995      0.995
+                  date       1168       1168          1          1      0.995      0.995
+                 payee        687        687          1          1      0.995      0.995
+           signature_f        300        300      0.995          1      0.995       0.99
+           signature_g       1008       1008          1      0.998      0.995      0.992
+Speed: 0.4ms preprocess, 2.2ms inference, 0.0ms loss, 0.5ms postprocess per image
+Results saved to runs/detect/train5
+💡 Learn more at https://docs.ultralytics.com/modes/train
+VS Code: view Ultralytics VS Code Extension ⚡ at https://docs.ultralytics.com/integrations/vscode
